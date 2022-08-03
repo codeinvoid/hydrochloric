@@ -1,4 +1,4 @@
-package com.pkgho.hoige.plugins
+package com.pkgho.plugins
 
 import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.cachingheaders.*

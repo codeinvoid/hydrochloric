@@ -1,6 +1,6 @@
-package com.pkgho.hoige
+package com.pkgho
 
-import com.pkgho.hoige.plugins.configureRouting
+import com.pkgho.plugins.configureRouting
 import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.http.content.*

@@ -1,4 +1,4 @@
-package com.pkgho.hoige.plugins
+package com.pkgho.plugins
 
 import io.ktor.server.html.*
 import kotlinx.html.*
