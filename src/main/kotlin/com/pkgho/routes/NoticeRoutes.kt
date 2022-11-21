@@ -7,11 +7,13 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.litote.kmongo.findOne
 
 fun Route.noticeRouting() {
-    route("/notice") {
+    val version = "v1"
+    route("/${version}/notice") {
         get {
-            if (dataStorage.isNotEmpty()) {
+            if ((dataStorage.countDocuments().toInt()) != 0) {
                 call.respond(dataStorage)
             } else {
                 call.respondText("No Notice", status = HttpStatusCode.NoContent)
@@ -23,7 +25,7 @@ fun Route.noticeRouting() {
                 status = HttpStatusCode.BadRequest
             )
             val notice =
-                dataStorage.find { it.id == id } ?: return@get call.respondText(
+                dataStorage.findOne(id) ?: return@get call.respondText(
                     "No data with id $id",
                     status = HttpStatusCode.NotFound
                 )
@@ -31,16 +33,15 @@ fun Route.noticeRouting() {
         }
         post {
             val notice = call.receive<Notice>()
-            dataStorage.add(notice)
+            dataStorage.insertOne(notice)
             call.respondText("Data stored correctly", status = HttpStatusCode.Created)
         }
         delete("{id?}") {
             val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-            if (dataStorage.removeIf { it.id == id }) {
+            if (dataStorage.findOne(id)?.id?.isEmpty() == false)
                 call.respondText("Data removed correctly", status = HttpStatusCode.Accepted)
-            } else {
-                call.respondText("Not Found", status = HttpStatusCode.NotFound)
-            }
+            else
+                call.respondText("Not Found",status = HttpStatusCode.NotFound)
         }
     }
 }
