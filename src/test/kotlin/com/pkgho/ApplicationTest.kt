@@ -40,6 +40,7 @@ class ApplicationTest {
         client.get("/${version}/srv").apply {
             assertEquals(HttpStatusCode.BadRequest, status)
             assertEquals("Missing id", bodyAsText())
+
         }
     }
 }
