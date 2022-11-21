@@ -31,14 +31,15 @@ import io.ktor.server.testing.*
 import com.pkgho.plugins.*
 
 class ApplicationTest {
+    val version = "v1"
     @Test
     fun testRoot() = testApplication {
         application {
             configureRouting()
         }
-        client.get("/").apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("Hello World!", bodyAsText())
+        client.get("/${version}/srv").apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+            assertEquals("Missing id", bodyAsText())
         }
     }
 }
