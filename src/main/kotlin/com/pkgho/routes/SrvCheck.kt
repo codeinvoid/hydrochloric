@@ -14,8 +14,12 @@ fun Route.srvcheck() {
     val version = "v1"
     route("/${version}/srv") {
         get("{ip?}"){
-            if (call.parameters["ip"] != null && call.parameters["ip"] != "")
-                call.respond(parseAddress(call.parameters["ip"].toString(),call))
+            if (call.parameters["ip"] != null || call.parameters["ip"] != "")
+                if (call.parameters["ip"]?.contains(":") == true || call.parameters["ip"]?.contains("：") == true)
+                    if (call.parameters["ip"]?.contains("：") == true)
+                        call.respond(call.parameters["ip"].toString().replace('：',':'))
+                    else call.respond(call.parameters["ip"].toString())
+                else call.respond(parseAddress(call.parameters["ip"].toString(),call))
             else
                 call.respondText(
                     "Missing id",
