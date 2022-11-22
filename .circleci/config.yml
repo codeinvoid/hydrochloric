@@ -42,7 +42,6 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle.kts" }}
 
-      # run tests!
       - run: gradle buildFatJar
       - store_artifacts: 
           path: build/libs/com.pkgho.hoige.web-all.jar
