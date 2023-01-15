@@ -22,6 +22,5 @@ fun Application.module() {
         // When first trying Sentry it's good to see what the SDK is doing:
         options.isDebug = false
     }
-       // Sentry.captureException(e)
 }
 
