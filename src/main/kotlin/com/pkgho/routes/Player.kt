@@ -8,9 +8,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.litote.kmongo.*
+import java.time.Instant
+
 fun Route.player() {
     val version = "v1"
-    val client = KMongo.createClient("*")
+    val client = KMongo.createClient("mongodb://HoiGe:24VT7rXFJt4vLJ2n@127.0.0.1:27017")
     val database = client.getDatabase("player")
     val col = database.getCollection<Player>()
 
@@ -62,21 +64,49 @@ fun Route.player() {
             }
         }
         authenticate("auth-bearer") {
+            post("{uuid}/code") {
+                val uuid = call.parameters["uuid"]
+                val filter = Player::uuid eq uuid
+                val activeCheck = col.findOne(filter)
+                val stateFrom = call.receive<Valid>()
+                if (activeCheck != null && stateFrom.code == activeCheck.code) {
+                    col.updateOne(
+                        filter,
+                        setValue(
+                            Player::state / State::whitelist / Whitelist::active,
+                            true
+                        )
+                    )
+                    col.updateOne(
+                        filter,
+                        setValue(
+                            Player::state / State::whitelist / Whitelist::time,
+                            Instant.now().epochSecond
+                        )
+                    )
+                    call.respondText("Success", status = HttpStatusCode.Accepted)
+                } else {
+                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
+                }
+            }
+
             get {
                 val player = col.find()
                 player.asIterable().map { call.respond(it.json) }
             }
 
-            post("/{uuid}") {
-                val playerId = call.parameters["uuid"].toString()
+            post {
+                val newFrom = call.receive<New>()
+                val playerId = newFrom.uuid
                 val filter = Player::uuid eq playerId
                 val banned = Banned(false, 0, "", "")
                 val whitelist = Whitelist(false, 0)
                 val integration = Integration(0, 0, false)
-                val state = State(banned, whitelist, integration)
-                val player = Player(_id = newId(), uuid = playerId, state = state)
-                val activeCheck = col.findOne(filter)
-                if (activeCheck == null) {
+                val state = State(banned, whitelist, integration, newFrom.qq)
+                val player = Player(_id = newId(), uuid = playerId, state = state, code = newFrom.code)
+                val uuidCheck = col.findOne(filter)
+                val qqCheck = col.findOne(Player::state / State::qq eq newFrom.qq)
+                if (uuidCheck == null && qqCheck == null) {
                     col.insertOne(player)
                     call.respondText(
                         "Player stored correctly",
@@ -95,6 +125,25 @@ fun Route.player() {
                     "Bad Request",
                     status = HttpStatusCode.BadRequest
                 )
+            }
+
+            put("/{uuid}/qq") {
+                val uuid = call.parameters["uuid"]
+                val filter = Player::uuid eq uuid
+                val activeCheck = col.findOne(filter)
+                if (activeCheck != null) {
+                    val stateFrom = call.receive<New>()
+                    col.updateOne(
+                        filter,
+                        setValue(
+                            Player::state / State::qq,
+                            stateFrom.qq
+                        )
+                    )
+                    call.respondText("Success", status = HttpStatusCode.Accepted)
+                } else {
+                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
+                }
             }
 
             put("/{uuid}/banned") {

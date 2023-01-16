@@ -6,16 +6,22 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.litote.kmongo.Id
 
 @Serializable
-data class Player(val uuid: String, @BsonId val _id: Id<Player>, @Contextual val state: State)
+data class Player(val uuid: String, @BsonId val _id: Id<Player>, @Contextual val state: State, val code: Int)
 
 @Serializable
-data class State(val banned: Banned, val whitelist: Whitelist, val integration: Integration)
+data class State(val banned: Banned, val whitelist: Whitelist, val integration: Integration, val qq: Long)
 
 @Serializable
-data class Integration(val count: Int, val time: Int, val active: Boolean)
+data class Integration(val count: Int, val time: Long, val active: Boolean)
 
 @Serializable
-data class Banned(val active: Boolean, val time: Int, val reason: String, val operator: String)
+data class Banned(val active: Boolean, val time: Long, val reason: String, val operator: String)
 
 @Serializable
-data class Whitelist(val active: Boolean, val time: Int)
+data class Whitelist(val active: Boolean, val time: Long)
+
+@Serializable
+data class New(val uuid: String, val code: Int, val qq: Long)
+
+@Serializable
+data class Valid(val code: Int)

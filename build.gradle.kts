@@ -14,7 +14,7 @@ group = "com.pkgho"
 version = "0.0.1"
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
-    val isDevelopment: Boolean = project.ext.has("development")
+    val isDevelopment: Boolean = false
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
