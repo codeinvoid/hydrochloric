@@ -84,7 +84,7 @@ fun Route.player() {
                         filter,
                         setValue(
                             Player::state / State::whitelist / Whitelist::time,
-                            Instant.now().epochSecond
+                            Instant.now().toEpochMilli()
                         )
                     )
                     call.respondText("Success", status = HttpStatusCode.Accepted)
@@ -188,6 +188,13 @@ fun Route.player() {
                         setValue(
                             Player::state / State::banned / Banned::operator,
                             bannedFrom.operator
+                        )
+                    )
+                    col.updateOne(
+                        filter,
+                        setValue(
+                            Player::state / State::banned / Banned::nanoid,
+                            bannedFrom.nanoid
                         )
                     )
                     call.respondText("Success", status = HttpStatusCode.Accepted)
