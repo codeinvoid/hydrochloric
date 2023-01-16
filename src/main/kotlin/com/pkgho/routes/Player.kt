@@ -1,5 +1,6 @@
 package com.pkgho.routes
 
+import com.aventrix.jnanoid.jnanoid.NanoIdUtils
 import com.pkgho.models.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -8,6 +9,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.litote.kmongo.*
+import java.security.SecureRandom
 import java.time.Instant
 
 fun Route.player() {
@@ -63,6 +65,7 @@ fun Route.player() {
                 }
             }
         }
+
         authenticate("auth-bearer") {
             post("{uuid}/code") {
                 val uuid = call.parameters["uuid"]
@@ -96,12 +99,19 @@ fun Route.player() {
             }
 
             post {
+                val random = SecureRandom()
+                val alphabet = charArrayOf('0','1','2','3',
+                    '4','5','6','7','8','9','A','B','C','D','E',
+                    'F','G','H','I','J','K','L','M','N','O','P','Q',
+                    'R','S','T','U','V','W','X','Y','Z')
+                val nanoid = NanoIdUtils.randomNanoId(random,alphabet,8);
+                val inanoid = NanoIdUtils.randomNanoId(random,alphabet,12);
                 val newFrom = call.receive<New>()
                 val playerId = newFrom.uuid
                 val filter = Player::uuid eq playerId
-                val banned = Banned(false, 0, "", "")
+                val banned = Banned(false, 0, "", "",nanoid)
                 val whitelist = Whitelist(false, 0)
-                val integration = Integration(0, 0, false)
+                val integration = Integration(0, 0, false,inanoid)
                 val state = State(banned, whitelist, integration, newFrom.qq)
                 val player = Player(_id = newId(), uuid = playerId, state = state, code = newFrom.code)
                 val uuidCheck = col.findOne(filter)

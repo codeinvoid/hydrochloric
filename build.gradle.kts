@@ -49,6 +49,7 @@ dependencies {
     implementation("dnsjava:dnsjava:3.5.2")
     implementation("com.apurebase:kgraphql:$kgraphql_version")
     implementation("com.apurebase:kgraphql-ktor:$kgraphql_version")
+    implementation("com.aventrix.jnanoid:jnanoid:2.0.0")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }

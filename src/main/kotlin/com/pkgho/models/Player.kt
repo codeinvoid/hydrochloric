@@ -12,10 +12,10 @@ data class Player(val uuid: String, @BsonId val _id: Id<Player>, @Contextual val
 data class State(val banned: Banned, val whitelist: Whitelist, val integration: Integration, val qq: Long)
 
 @Serializable
-data class Integration(val count: Int, val time: Long, val active: Boolean)
+data class Integration(val count: Int, val time: Long, val active: Boolean, val nanoid: String)
 
 @Serializable
-data class Banned(val active: Boolean, val time: Long, val reason: String, val operator: String)
+data class Banned(val active: Boolean, val time: Long, val reason: String, val operator: String, val nanoid: String)
 
 @Serializable
 data class Whitelist(val active: Boolean, val time: Long)
