@@ -94,7 +94,7 @@ fun Route.player() {
                             Instant.now().toEpochMilli()
                         )
                     )
-                    call.respondText("Success", status = HttpStatusCode.Accepted)
+                    call.respondText("Success", status = HttpStatusCode.OK)
                 } else {
                     call.respondText("Not Found", status = HttpStatusCode.NotFound)
                 }
