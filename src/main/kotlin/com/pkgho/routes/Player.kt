@@ -1,6 +1,6 @@
 package com.pkgho.routes
 
-import com.aventrix.jnanoid.jnanoid.NanoIdUtils
+import com.pkgho.api.*
 import com.pkgho.models.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -9,26 +9,18 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.litote.kmongo.*
-import java.security.SecureRandom
-import java.time.Instant
 
 fun Route.player() {
-    val version = "v1"
-    val client = KMongo.createClient("mongodb://HoiGe:24VT7rXFJt4vLJ2n@127.0.0.1:27017")
-    val database = client.getDatabase("player")
-    val col = database.getCollection<Player>()
-    val random = SecureRandom()
-    val alphabet = charArrayOf('0','1','2','3',
-        '4','5','6','7','8','9','A','B','C','D','E',
-        'F','G','H','I','J','K','L','M','N','O','P','Q',
-        'R','S','T','U','V','W','X','Y','Z')
-    val nanoid = NanoIdUtils.randomNanoId(random,alphabet,8);
-    val inanoid = NanoIdUtils.randomNanoId(random,alphabet,12);
+    val version = "1"
+    val col = data()
+    val uuidBase = "/{uuid}"
 
-    route("/${version}/players") {
+    route("/v${version}/players") {
 
-        get("/{uuid}") {
-            val player: Player? = col.findOne(Player::uuid eq call.parameters["uuid"])
+        get(uuidBase) {
+            val uuid = uuid(this)
+            val player: Player? = col.findOne(Player::uuid eq uuid)
+
             if (player != null) {
                 call.respond(player.json)
             } else {
@@ -37,100 +29,40 @@ fun Route.player() {
         }
 
         get("/{uuid}/{type}") {
-            val uuid = call.parameters["uuid"]
+            val uuid = uuid(this)
+
             when (call.parameters["type"].toString()) {
-                "banned" -> {
-                    val banned = col.find().evaluate {
-                        filter { it.uuid == uuid }.first().state.banned
-                    }
-                    call.respond(banned)
-                }
 
-                "integration" -> {
-                    val integration = col.find().evaluate {
-                        filter { it.uuid == uuid }.first().state.integration
-                    }
-                    call.respond(integration)
-                }
+                "banned" -> { call.respond(StateChecker().banned(uuid)) }
+                "integration" -> { call.respond(StateChecker().integration(uuid)) }
+                "whitelist" -> { call.respond(StateChecker().whitelist(uuid)) }
+                "all" -> { call.respond(StateChecker().all(uuid)) }
 
-                "whitelist" -> {
-                    val whitelist = col.find().evaluate {
-                        filter { it.uuid == uuid }.first().state.whitelist
-                    }
-                    call.respond(whitelist)
-                }
-
-                "all" -> {
-                    val all = col.find().evaluate {
-                        filter { it.uuid == uuid }.first().state
-                    }
-                    call.respond(all)
-                }
-
-                else -> {
-                    call.respondText("Invalid Type", status = HttpStatusCode.BadRequest)
-                }
+                else -> { call.respondText("Invalid Type", status = HttpStatusCode.BadRequest) }
             }
         }
 
         authenticate("auth-bearer") {
-            post("{uuid}/code") {
-                val uuid = call.parameters["uuid"]
-                val filter = Player::uuid eq uuid
-                val activeCheck = col.findOne(filter)
-                val stateFrom = call.receive<Valid>()
-                if (activeCheck != null && stateFrom.code == activeCheck.code) {
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::whitelist / Whitelist::active,
-                            true
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::whitelist / Whitelist::time,
-                            Instant.now().toEpochMilli()
-                        )
-                    )
-                    call.respondText("Success", status = HttpStatusCode.OK)
-                } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
-                }
+            post("/{uuid}/code") {
+                val uuid = uuid(this)
+                val from = call.receive<Valid>()
+
+                createCall(this, Create(uuid).code(from.code))
             }
 
             get {
                 val player = col.find()
+
                 player.asIterable().map { call.respond(it.json) }
             }
 
             post {
-                val newFrom = call.receive<New>()
-                val playerId = newFrom.uuid
-                val filter = Player::uuid eq playerId
-                val banned = Banned(false, 0, "", "",nanoid)
-                val whitelist = Whitelist(false, 0)
-                val integration = Integration(0, 0, false,inanoid)
-                val state = State(banned, whitelist, integration, newFrom.qq)
-                val player = Player(_id = newId(), uuid = playerId, state = state, code = newFrom.code)
-                val uuidCheck = col.findOne(filter)
-                val qqCheck = col.findOne(Player::state / State::qq eq newFrom.qq)
-                if (uuidCheck == null && qqCheck == null) {
-                    col.insertOne(player)
-                    call.respondText(
-                        "Player stored correctly",
-                        status = HttpStatusCode.Created
-                    )
-                } else {
-                    call.respondText(
-                        "This Player is Locked.",
-                        status = HttpStatusCode.Locked
-                    )
-                }
+                val from = call.receive<New>()
+
+                postCall(this, Create(from.uuid).playerBuilder(from))
             }
 
-            put("/{uuid}") {
+            put(uuidBase) {
                 call.respondText(
                     "Bad Request",
                     status = HttpStatusCode.BadRequest
@@ -138,138 +70,45 @@ fun Route.player() {
             }
 
             put("/{uuid}/qq") {
-                val uuid = call.parameters["uuid"]
-                val filter = Player::uuid eq uuid
-                val activeCheck = col.findOne(filter)
-                if (activeCheck != null) {
-                    val stateFrom = call.receive<New>()
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::qq,
-                            stateFrom.qq
-                        )
-                    )
-                    call.respondText("Success", status = HttpStatusCode.Accepted)
-                } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
-                }
+                val uuid = uuid(this)
+                val from = call.receive<New>()
+                val qq = Updater(uuid).qq(from)
+
+                call(this, qq)
             }
 
             put("/{uuid}/banned") {
-                val uuid = call.parameters["uuid"]
-                val filter = Player::uuid eq uuid
-                val activeCheck = col.findOne(filter)
-                if (activeCheck != null) {
-                    val bannedFrom = call.receive<Banned>()
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::banned / Banned::active,
-                            bannedFrom.active
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::banned / Banned::time,
-                            Instant.now().toEpochMilli()
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::banned / Banned::reason,
-                            bannedFrom.reason
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::banned / Banned::operator,
-                            bannedFrom.operator
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::banned / Banned::nanoid,
-                            nanoid
-                        )
-                    )
-                    call.respondText("Success", status = HttpStatusCode.Accepted)
-                } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
-                }
+                val uuid = uuid(this)
+                val from = call.receive<Banned>()
+                val banned = Updater(uuid).banned(from)
+
+                call(this, banned)
             }
 
             put("/{uuid}/whitelist") {
-                val uuid = call.parameters["uuid"]
-                val filter = Player::uuid eq uuid
-                val activeCheck = col.findOne(filter)
-                if (activeCheck != null) {
-                    val whitelistFrom = call.receive<Whitelist>()
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::whitelist / Whitelist::active,
-                            whitelistFrom.active
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::whitelist / Whitelist::time,
-                            Instant.now().toEpochMilli()
-                        )
-                    )
-                    call.respondText("Success", status = HttpStatusCode.Accepted)
-                } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
-                }
+                val uuid = uuid(this)
+                val from = call.receive<Whitelist>()
+                val whitelist = Updater(uuid).whitelist(from)
+
+                call(this, whitelist)
             }
 
             put("/{uuid}/integration") {
-                val uuid = call.parameters["uuid"]
-                val filter = Player::uuid eq uuid
-                val activeCheck = col.findOne(filter)
-                if (activeCheck != null) {
-                    val integrationFrom = call.receive<Integration>()
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::integration / Integration::active,
-                            integrationFrom.active
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::integration / Integration::time,
-                            Instant.now().toEpochMilli()
-                        )
-                    )
-                    col.updateOne(
-                        filter,
-                        setValue(
-                            Player::state / State::integration / Integration::count,
-                            integrationFrom.count
-                        )
-                    )
-                    call.respondText("Success", status = HttpStatusCode.Accepted)
-                } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
-                }
+                val uuid = uuid(this)
+                val from = call.receive<Integration>()
+                val integration = Updater(uuid).integration(from)
+
+                call(this, integration)
             }
 
-            delete("/{uuid}") {
-                val uuid = call.parameters["uuid"]
-                val activeCheck = col.findOne(Player::uuid eq uuid)
-                if (activeCheck != null) {
+            delete(uuidBase) {
+                val uuid = uuid(this)
+
+                if (uuidChecker(uuid)) {
                     col.deleteOne(Player::uuid eq uuid)
-                    call.respondText("Player removed correctly", status = HttpStatusCode.Accepted)
+                    call(this, true)
                 } else {
-                    call.respondText("Not Found", status = HttpStatusCode.NotFound)
+                    call(this, false)
                 }
             }
         }
