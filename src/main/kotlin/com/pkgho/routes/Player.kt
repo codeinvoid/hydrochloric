@@ -17,6 +17,13 @@ fun Route.player() {
     val client = KMongo.createClient("mongodb://HoiGe:24VT7rXFJt4vLJ2n@127.0.0.1:27017")
     val database = client.getDatabase("player")
     val col = database.getCollection<Player>()
+    val random = SecureRandom()
+    val alphabet = charArrayOf('0','1','2','3',
+        '4','5','6','7','8','9','A','B','C','D','E',
+        'F','G','H','I','J','K','L','M','N','O','P','Q',
+        'R','S','T','U','V','W','X','Y','Z')
+    val nanoid = NanoIdUtils.randomNanoId(random,alphabet,8);
+    val inanoid = NanoIdUtils.randomNanoId(random,alphabet,12);
 
     route("/${version}/players") {
 
@@ -99,13 +106,6 @@ fun Route.player() {
             }
 
             post {
-                val random = SecureRandom()
-                val alphabet = charArrayOf('0','1','2','3',
-                    '4','5','6','7','8','9','A','B','C','D','E',
-                    'F','G','H','I','J','K','L','M','N','O','P','Q',
-                    'R','S','T','U','V','W','X','Y','Z')
-                val nanoid = NanoIdUtils.randomNanoId(random,alphabet,8);
-                val inanoid = NanoIdUtils.randomNanoId(random,alphabet,12);
                 val newFrom = call.receive<New>()
                 val playerId = newFrom.uuid
                 val filter = Player::uuid eq playerId
@@ -173,7 +173,7 @@ fun Route.player() {
                         filter,
                         setValue(
                             Player::state / State::banned / Banned::time,
-                            bannedFrom.time
+                            Instant.now().toEpochMilli()
                         )
                     )
                     col.updateOne(
@@ -194,7 +194,7 @@ fun Route.player() {
                         filter,
                         setValue(
                             Player::state / State::banned / Banned::nanoid,
-                            bannedFrom.nanoid
+                            nanoid
                         )
                     )
                     call.respondText("Success", status = HttpStatusCode.Accepted)
@@ -220,7 +220,7 @@ fun Route.player() {
                         filter,
                         setValue(
                             Player::state / State::whitelist / Whitelist::time,
-                            whitelistFrom.time
+                            Instant.now().toEpochMilli()
                         )
                     )
                     call.respondText("Success", status = HttpStatusCode.Accepted)
@@ -246,7 +246,7 @@ fun Route.player() {
                         filter,
                         setValue(
                             Player::state / State::integration / Integration::time,
-                            integrationFrom.time
+                            Instant.now().toEpochMilli()
                         )
                     )
                     col.updateOne(
