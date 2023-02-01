@@ -50,10 +50,17 @@ fun Route.player() {
                 createCall(this, Create(uuid).code(from.code))
             }
 
-            get {
-                val player = col.find()
+            get ("{page}"){
+                val page = call.parameters["type"]?.toInt()
+                val limit = 10
+                if (page is Int) {
+                    val player = col.find().skip((page - 1) * limit).limit(limit)
+                        .partial(true).descendingSort().toList()
+                    player.asIterable().map { call.respond(it.json) }
+                } else {
+                    call(this, false)
+                }
 
-                player.asIterable().map { call.respond(it.json) }
             }
 
             post {

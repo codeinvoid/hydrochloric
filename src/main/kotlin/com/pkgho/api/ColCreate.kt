@@ -2,6 +2,7 @@ package com.pkgho.api
 
 import com.pkgho.models.*
 import org.litote.kmongo.*
+import java.math.BigDecimal
 import java.time.Instant
 
 abstract class ColCreate {
@@ -34,9 +35,9 @@ class Create(private val uuid: String) : ColCreate() {
     }
 
     fun playerBuilder(newFrom: New): Boolean{
-        val banned = Banned(false, 0, "", "",nanoId)
+        val banned = Banned(false, 0, "", "", nanoId)
         val whitelist = Whitelist(false, 0)
-        val integration = Integration(0, 0, false,iNanoId)
+        val integration = Integration(BigDecimal(0), 0, false, iNanoId)
         val state = State(banned, whitelist, integration, newFrom.qq)
         val player = Player(uuid, newId(), state, newFrom.code)
         val qqCheck = data().findOne(Player::state / State::qq eq newFrom.qq)

@@ -52,6 +52,6 @@ suspend fun createCall(send: PipelineContext<Unit, ApplicationCall>, state: Bool
 }
 
 fun uuid(send: PipelineContext<Unit, ApplicationCall>) : String {
-    return send.call.parameters["uuid"].toString()
+    return send.call.parameters["uuid"].toString().replace("-", "")
 }
 
