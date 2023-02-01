@@ -4,7 +4,6 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.bson.codecs.pojo.annotations.BsonId
 import org.litote.kmongo.Id
-import java.math.BigDecimal
 
 @Serializable
 data class Player(val uuid: String, @BsonId val _id: Id<Player>, @Contextual val state: State, val code: Int)
@@ -13,7 +12,7 @@ data class Player(val uuid: String, @BsonId val _id: Id<Player>, @Contextual val
 data class State(val banned: Banned, val whitelist: Whitelist, val integration: Integration, val qq: Long)
 
 @Serializable
-data class Integration(@Contextual val count: BigDecimal, val time: Long, val active: Boolean, val nanoid: String)
+data class Integration(val count: Long, val time: Long, val active: Boolean, val nanoid: String)
 
 @Serializable
 data class Banned(val active: Boolean, val time: Long, val reason: String, val operator: String, val nanoid: String)
