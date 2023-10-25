@@ -5,3 +5,6 @@
 Hydrochloric是ProjectRTSN官网的后端程序
 
 关于工作原理的说明，请参阅[ktor文档](https://ktor.io)
+
+## 暂停
+由于前置项目停止支持 本项目将存档
